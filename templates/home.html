@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+{% block title %}— Dashboard{% endblock %}
+{% block breadcrumb %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- ── Hero Row ───────────────────────────────────────────────────────────── -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Overview of all research datasets and ward records</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'dataset_upload' %}" class="btn btn-primary">
+      <i class="fas fa-cloud-arrow-up me-2"></i>Upload Dataset
+    </a>
+    <a href="{% url 'dataset_list' %}" class="btn btn-outline-secondary ms-2">
+      <i class="fas fa-table-list me-2"></i>Browse All
+    </a>
+  </div>
+</div>
+
+<!-- ── Stat Cards ─────────────────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card stat-card-blue">
+      <div class="stat-icon"><i class="fas fa-database"></i></div>
+      <div class="stat-body">
+        <div class="stat-number">{{ total_datasets }}</div>
+        <div class="stat-label">Total Datasets</div>
+        <div class="small text-muted mt-1">
+          <span class="text-primary">{{ ward_datasets }} ward</span> &middot;
+          <span class="text-info">{{ lab_datasets }} lab</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card stat-card-cyan">
+      <div class="stat-icon"><i class="fas fa-hospital"></i></div>
+      <div class="stat-body">
+        <div class="stat-number">{{ total_ward|default:"0" }}</div>
+        <div class="stat-label">Ward Records</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card stat-card-green">
+      <div class="stat-icon"><i class="fas fa-flask"></i></div>
+      <div class="stat-body">
+        <div class="stat-number">{{ total_lab|default:"0" }}</div>
+        <div class="stat-label">Lab Records</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card stat-card-red">
+      <div class="stat-icon"><i class="fas fa-users"></i></div>
+      <div class="stat-body">
+        <div class="stat-number">{{ total_patients|default:"0" }}</div>
+        <div class="stat-label">Unique Patients</div>
+        {% if total_cases %}
+        <div class="small text-muted mt-1">{{ total_cases }} lab cases</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Chart + Ward Stats ────────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <!-- Donut Chart -->
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header">
+        <div class="card-header-title">
+          <i class="fas fa-chart-pie me-2 text-primary"></i>Ward Type Distribution
+        </div>
+      </div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        {% if total_ward %}
+          <div style="position:relative;max-width:320px;width:100%;">
+            <canvas id="wardDonut"></canvas>
+          </div>
+        {% else %}
+          <div class="empty-chart">
+            <i class="fas fa-chart-pie"></i>
+            <p>No data yet — upload a dataset to see the chart</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Ward breakdown table -->
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header">
+        <div class="card-header-title">
+          <i class="fas fa-hospital me-2 text-primary"></i>Ward Breakdown
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0 ward-table">
+          <thead>
+            <tr>
+              <th>Ward Type</th>
+              <th>Code</th>
+              <th>Records</th>
+              <th>Share</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% with total=total_ward %}
+            <tr>
+              <td><span class="ward-badge ward-ip"><i class="fas fa-bed me-1"></i>Inpatient</span></td>
+              <td><code>IP</code></td>
+              <td><strong>{{ ward_stats.IP|default:"0" }}</strong></td>
+              <td>
+                <div class="progress-bar-wrap">
+                  {% if total %}<div class="progress-bar-fill bar-ip" style="width:{% widthratio ward_stats.IP total 100 %}%"></div>{% endif %}
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="ward-badge ward-op"><i class="fas fa-stethoscope me-1"></i>Outpatient</span></td>
+              <td><code>OP</code></td>
+              <td><strong>{{ ward_stats.OP|default:"0" }}</strong></td>
+              <td>
+                <div class="progress-bar-wrap">
+                  {% if total %}<div class="progress-bar-fill bar-op" style="width:{% widthratio ward_stats.OP total 100 %}%"></div>{% endif %}
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="ward-badge ward-er"><i class="fas fa-bolt me-1"></i>Emergency</span></td>
+              <td><code>ER</code></td>
+              <td><strong>{{ ward_stats.ER|default:"0" }}</strong></td>
+              <td>
+                <div class="progress-bar-wrap">
+                  {% if total %}<div class="progress-bar-fill bar-er" style="width:{% widthratio ward_stats.ER total 100 %}%"></div>{% endif %}
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="ward-badge ward-uc"><i class="fas fa-clock me-1"></i>Urgent Care</span></td>
+              <td><code>UC</code></td>
+              <td><strong>{{ ward_stats.UC|default:"0" }}</strong></td>
+              <td>
+                <div class="progress-bar-wrap">
+                  {% if total %}<div class="progress-bar-fill bar-uc" style="width:{% widthratio ward_stats.UC total 100 %}%"></div>{% endif %}
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="ward-badge ward-ds"><i class="fas fa-scissors me-1"></i>Day Surgery</span></td>
+              <td><code>DS</code></td>
+              <td><strong>{{ ward_stats.DS|default:"0" }}</strong></td>
+              <td>
+                <div class="progress-bar-wrap">
+                  {% if total %}<div class="progress-bar-fill bar-ds" style="width:{% widthratio ward_stats.DS total 100 %}%"></div>{% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endwith %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Recent Datasets ───────────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header-title">
+      <i class="fas fa-clock-rotate-left me-2 text-primary"></i>Recent Datasets
+    </div>
+    <a href="{% url 'dataset_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+  </div>
+  <div class="card-body p-0">
+    {% if recent_datasets %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Dataset Name</th>
+            <th>Schema</th>
+            <th>Status</th>
+            <th>Records</th>
+            <th>Uploaded</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ds in recent_datasets %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="ds-icon">
+                  {% if ds.schema_type == 'lab' %}<i class="fas fa-flask"></i>
+                  {% else %}<i class="fas fa-file-csv"></i>{% endif %}
+                </div>
+                <div>
+                  <div class="fw-semibold">{{ ds.name }}</div>
+                  <div class="text-muted small">{{ ds.description|truncatechars:60 }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              {% if ds.schema_type == 'lab' %}
+                <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.7rem">
+                  <i class="fas fa-flask me-1"></i>Lab
+                </span>
+              {% else %}
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:.7rem">
+                  <i class="fas fa-hospital me-1"></i>Ward
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="status-badge status-{{ ds.status }}">
+                {% if ds.status == 'ready' %}<i class="fas fa-circle-check me-1"></i>{% endif %}
+                {% if ds.status == 'processing' %}<i class="fas fa-spinner fa-spin me-1"></i>{% endif %}
+                {% if ds.status == 'error' %}<i class="fas fa-circle-xmark me-1"></i>{% endif %}
+                {{ ds.get_status_display }}
+              </span>
+            </td>
+            <td><span class="fw-semibold">{{ ds.row_count|default:"—" }}</span></td>
+            <td class="text-muted small">{{ ds.created_at|date:"M d, Y" }}</td>
+            <td>
+              <a href="{% url 'dataset_detail' ds.pk %}" class="btn btn-sm btn-primary">
+                <i class="fas fa-eye me-1"></i>Explore
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="fas fa-database"></i>
+      <h5>No datasets yet</h5>
+      <p>Upload your first CSV dataset to get started</p>
+      <a href="{% url 'dataset_upload' %}" class="btn btn-primary mt-2">
+        <i class="fas fa-cloud-arrow-up me-2"></i>Upload Dataset
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const wardStats = {{ ward_stats_json|safe }};
+const labels  = ['Inpatient (IP)', 'Outpatient (OP)', 'Emergency (ER)', 'Urgent Care (UC)', 'Day Surgery'];
+const values  = [wardStats.IP, wardStats.OP, wardStats.ER, wardStats.UC, wardStats.DS];
+const colors  = ['#3b82f6','#10b981','#ef4444','#f59e0b','#8b5cf6'];
+
+if (document.getElementById('wardDonut')) {
+  new Chart(document.getElementById('wardDonut'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 3, borderColor: '#fff', hoverOffset: 6 }] },
+    options: {
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 16, font: { size: 12, family: 'Inter' } } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString()}` } }
+      }
+    }
+  });
+}
+</script>
+{% endblock %}

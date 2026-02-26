@@ -1,0 +1,370 @@
+{% extends 'base.html' %}
+{% block title %}— {{ dataset.name }}{% endblock %}
+{% block breadcrumb %}{{ dataset.name }}{% endblock %}
+
+{% block content %}
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<div class="page-header flex-wrap gap-3">
+  <div>
+    <h1 class="page-title">{{ dataset.name }}</h1>
+    <p class="page-subtitle mb-0">
+      <span class="status-badge status-{{ dataset.status }} me-2">
+        {% if dataset.status == 'ready' %}<i class="fas fa-circle-check me-1"></i>{% endif %}
+        {{ dataset.get_status_display }}
+      </span>
+      <span class="badge bg-info-subtle text-info border border-info-subtle me-1">
+        <i class="fas fa-flask me-1"></i>Lab Results
+      </span>
+      {{ dataset.row_count|default:"0" }} records ·
+      {{ unique_cases }} unique cases ·
+      {{ dataset.created_at|date:"M d, Y" }}
+      {% if dataset.created_by %} · by {{ dataset.created_by.username }}{% endif %}
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'dataset_export' dataset.pk %}" class="btn btn-outline-primary btn-sm">
+      <i class="fas fa-download me-1"></i>Export CSV
+    </a>
+    <button type="button" class="btn btn-outline-danger btn-sm"
+            data-bs-toggle="modal" data-bs-target="#deleteModal">
+      <i class="fas fa-trash me-1"></i>Delete
+    </button>
+    <a href="{% url 'dataset_list' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Back
+    </a>
+  </div>
+</div>
+
+<!-- ── Summary Stats Row ──────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4 col-xl-3">
+    <div class="stat-card h-100">
+      <div class="stat-icon" style="background:rgba(99,102,241,.12);color:#6366f1">
+        <i class="fas fa-vials"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ dataset.row_count|default:"0" }}</div>
+        <div class="stat-label">Total Records</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-3">
+    <div class="stat-card h-100">
+      <div class="stat-icon" style="background:rgba(16,185,129,.12);color:#10b981">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ unique_cases }}</div>
+        <div class="stat-label">Unique Cases</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-3">
+    <div class="stat-card h-100">
+      <div class="stat-icon" style="background:rgba(245,158,11,.12);color:#f59e0b">
+        <i class="fas fa-flask"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ available_tests|length }}</div>
+        <div class="stat-label">Test Types</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-3">
+    <div class="stat-card h-100">
+      <div class="stat-icon" style="background:rgba(239,68,68,.12);color:#ef4444">
+        <i class="fas fa-calendar-days"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ dataset.created_at|date:"M d" }}</div>
+        <div class="stat-label">Uploaded</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main Row: Filter + Table ───────────────────────────────────────────── -->
+<div class="row g-4">
+
+  <!-- ── Filter Sidebar ─────────────────────────────────────────────────── -->
+  <div class="col-lg-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0 pb-0">
+        <h6 class="fw-semibold mb-0"><i class="fas fa-filter me-2 text-primary"></i>Filters</h6>
+      </div>
+      <div class="card-body">
+        <form method="GET" id="filterForm">
+          <div class="mb-3">
+            <label class="form-label small fw-medium">Case ID</label>
+            <input type="number" name="caseid" class="form-control form-control-sm"
+                   placeholder="e.g. 1234"
+                   value="{{ filters.caseid }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-medium">Lab Test</label>
+            <select name="test" class="form-select form-select-sm">
+              <option value="">All tests</option>
+              {% for t in available_tests %}
+              <option value="{{ t }}" {% if filters.test == t %}selected{% endif %}>
+                {{ t|upper }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-medium">DT From</label>
+            <input type="number" name="dt_from" class="form-control form-control-sm"
+                   placeholder="Min offset"
+                   value="{{ filters.dt_from }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-medium">DT To</label>
+            <input type="number" name="dt_to" class="form-control form-control-sm"
+                   placeholder="Max offset"
+                   value="{{ filters.dt_to }}">
+          </div>
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="fas fa-search me-1"></i>Apply
+            </button>
+            <a href="{% url 'dataset_detail' dataset.pk %}" class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-xmark me-1"></i>Clear
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Per-Test Stats Card -->
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header bg-transparent border-0 pb-0">
+        <h6 class="fw-semibold mb-0"><i class="fas fa-chart-bar me-2 text-success"></i>Per-Test Summary</h6>
+      </div>
+      <div class="card-body p-2">
+        <div style="max-height:340px;overflow-y:auto;">
+          <table class="table table-sm mb-0">
+            <thead class="table-light">
+              <tr><th>Test</th><th>Count</th><th>Avg</th></tr>
+            </thead>
+            <tbody>
+              {% for t in test_stats %}
+              <tr>
+                <td><span class="badge" style="background:#e0e7ff;color:#4338ca;font-size:0.7rem">{{ t.name|upper }}</span></td>
+                <td class="text-muted small">{{ t.count }}</td>
+                <td class="text-muted small">{{ t.avg|floatformat:2 }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Right Column: Chart + DataTable ───────────────────────────────── -->
+  <div class="col-lg-9">
+
+    <!-- Bar Chart -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex align-items-center gap-2">
+        <i class="fas fa-chart-column text-primary"></i>
+        <h6 class="fw-semibold mb-0">Record Count by Lab Test</h6>
+      </div>
+      <div class="card-body" style="height:220px">
+        <canvas id="labChart"></canvas>
+      </div>
+    </div>
+
+    <!-- DataTable -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0 d-flex align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-table text-primary"></i>
+          <h6 class="fw-semibold mb-0">Records</h6>
+        </div>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="rowCount">—</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table id="labTable" class="table table-hover table-sm align-middle mb-0 small"
+                 style="width:100%">
+            <thead class="table-light">
+              <tr>
+                <th>Case ID</th>
+                <th>DT Offset</th>
+                <th>Lab Test</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div><!-- /col -->
+</div><!-- /row -->
+
+<!-- ── Delete Modal ───────────────────────────────────────────────────────── -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title"><i class="fas fa-triangle-exclamation text-danger me-2"></i>Delete Dataset</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-muted">
+        Delete <strong>{{ dataset.name }}</strong>? This will permanently remove all
+        <strong>{{ dataset.row_count|default:"0" }}</strong> lab records. This cannot be undone.
+      </div>
+      <div class="modal-footer border-0">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="POST" action="{% url 'dataset_delete' dataset.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash me-1"></i>Delete
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Full names for lab test codes ─────────────────────────────────────────
+const LAB_FULL_NAMES = {
+  alb:   'Albumin',
+  alt:   'Alanine Aminotransferase',
+  ammo:  'Ammonia',
+  aptt:  'Activated Partial Thromboplastin Time',
+  ast:   'Aspartate Aminotransferase',
+  be:    'Base Excess',
+  bun:   'Blood Urea Nitrogen',
+  ccr:   'Creatinine Clearance',
+  cl:    'Chloride',
+  cr:    'Creatinine',
+  crp:   'C-Reactive Protein',
+  esr:   'Erythrocyte Sedimentation Rate',
+  fib:   'Fibrinogen',
+  gfr:   'Glomerular Filtration Rate',
+  gluc:  'Glucose',
+  hb:    'Hemoglobin',
+  hco3:  'Bicarbonate',
+  hct:   'Hematocrit',
+  ica:   'Ionised Calcium',
+  k:     'Potassium',
+  lac:   'Lactate',
+  na:    'Sodium',
+  p:     'Phosphate',
+  pco2:  'Partial Pressure of CO₂',
+  ph:    'pH',
+  plt:   'Platelet Count',
+  po2:   'Partial Pressure of O₂',
+  'pt%': 'Prothrombin Time %',
+  ptinr: 'Prothrombin Time INR',
+  ptsec: 'Prothrombin Time (seconds)',
+  sao2:  'Oxygen Saturation',
+  tbil:  'Total Bilirubin',
+  tprot: 'Total Protein',
+  wbc:   'White Blood Cell Count',
+};
+
+// ── Lab test bar chart ────────────────────────────────────────────────────
+const labStats = {{ test_stats_json|safe }};
+const labCtx   = document.getElementById('labChart');
+if (labCtx && labStats.length) {
+  new Chart(labCtx, {
+    type: 'bar',
+    data: {
+      labels: labStats.map(t => t.name.toUpperCase()),
+      datasets: [{
+        label: 'Records',
+        data:  labStats.map(t => t.count),
+        backgroundColor: labStats.map((_, i) => `hsl(${220 + i * 10}, 70%, ${55 + (i % 4) * 5}%)`),
+        borderRadius: 5,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: items => {
+              const code = items[0].label.toLowerCase();
+              const full = LAB_FULL_NAMES[code];
+              return full ? `${items[0].label} — ${full}` : items[0].label;
+            },
+            label: items => ` ${items.parsed.y.toLocaleString()} records`,
+          }
+        }
+      },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' },
+             ticks: { color: '#64748b', font: { size: 11 } } },
+        x: { grid: { display: false },
+             ticks: { color: '#374151', font: { size: 11 } } },
+      }
+    }
+  });
+}
+
+// ── DataTables ────────────────────────────────────────────────────────────
+const LAB_BADGE_COLORS = {
+  alb:'#a855f7',alt:'#3b82f6',ammo:'#f59e0b',aptt:'#10b981',
+  ast:'#ef4444',be:'#6366f1',bun:'#ec4899',ccr:'#14b8a6',
+  cl:'#f97316',cr:'#84cc16',crp:'#f43f5e',esr:'#8b5cf6',
+  fib:'#22d3ee',gfr:'#facc15',gluc:'#4ade80',hb:'#fb7185',
+  hco3:'#818cf8',hct:'#2dd4bf',ica:'#e879f9',k:'#34d399',
+  lac:'#fbbf24',na:'#60a5fa',p:'#a3e635',pco2:'#c084fc',
+  ph:'#fb923c',plt:'#f87171',po2:'#38bdf8',pt:'#4ade80',
+  ptinr:'#e11d48',ptsec:'#0ea5e9',sao2:'#7c3aed',tbil:'#d97706',
+  tprot:'#059669',wbc:'#dc2626',
+};
+
+function badgeFor(name) {
+  const col = LAB_BADGE_COLORS[name] || '#6b7280';
+  return `<span class="badge rounded-pill" style="background:${col}20;color:${col};border:1px solid ${col}60;font-size:.75rem">${name.toUpperCase()}</span>`;
+}
+
+// Build extra params from the filter form
+function getFilters() {
+  const p = {};
+  const form = document.getElementById('filterForm');
+  ['caseid','test','dt_from','dt_to'].forEach(n => {
+    const v = form.querySelector(`[name="${n}"]`).value.trim();
+    if (v) p[n] = v;
+  });
+  return p;
+}
+
+const table = new DataTable('#labTable', {
+  processing: true,
+  serverSide: true,
+  ajax: {
+    url: '{% url "api_records" dataset.pk %}',
+    data: d => Object.assign(d, getFilters()),
+  },
+  columns: [
+    { data: 'caseid' },
+    { data: 'dt',     render: v => `<code class="text-secondary">${v}</code>` },
+    { data: 'name',   render: v => badgeFor(v) },
+    { data: 'result', render: v => v === null ? '<span class="text-muted">—</span>'
+                                              : `<strong>${parseFloat(v).toFixed(3)}</strong>` },
+  ],
+  pageLength: 25,
+  lengthMenu: [[10,25,50,100],[10,25,50,100]],
+  order: [[0,'asc']],
+  language: {
+    processing: '<div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Loading…</span></div>',
+    emptyTable: 'No records match the current filters.',
+  },
+  drawCallback: s => {
+    document.getElementById('rowCount').textContent =
+      s.json.recordsFiltered.toLocaleString() + ' rows';
+  },
+});
+</script>
+{% endblock %}

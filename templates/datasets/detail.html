@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% block title %}— {{ dataset.name }}{% endblock %}
+{% block breadcrumb %}{{ dataset.name }}{% endblock %}
+
+{% block content %}
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<div class="page-header flex-wrap gap-3">
+  <div>
+    <h1 class="page-title">{{ dataset.name }}</h1>
+    <p class="page-subtitle mb-0">
+      <span class="status-badge status-{{ dataset.status }} me-2">
+        {% if dataset.status == 'ready' %}<i class="fas fa-circle-check me-1"></i>{% endif %}
+        {{ dataset.get_status_display }}
+      </span>
+      {{ dataset.row_count|default:"0" }} total records ·
+      {{ dataset.created_at|date:"M d, Y" }}
+      {% if dataset.created_by %} · by {{ dataset.created_by.username }}{% endif %}
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'dataset_export' dataset.pk %}" class="btn btn-outline-primary btn-sm">
+      <i class="fas fa-download me-1"></i>Export CSV
+    </a>
+    <button type="button" class="btn btn-outline-danger btn-sm"
+            data-bs-toggle="modal" data-bs-target="#deleteModal">
+      <i class="fas fa-trash me-1"></i>Delete
+    </button>
+    <a href="{% url 'dataset_list' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Back
+    </a>
+  </div>
+</div>
+
+<!-- ── Ward Stats Mini-Cards ──────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  {% for code, count in ward_stats.items %}
+  <div class="col-6 col-md-4 col-xl">
+    <div class="mini-stat-card
+      {% if code == 'IP' %}msc-ip
+      {% elif code == 'OP' %}msc-op
+      {% elif code == 'ER' %}msc-er
+      {% elif code == 'UC' %}msc-uc
+      {% else %}msc-ds{% endif %}">
+      <div class="msc-code">{{ code }}</div>
+      <div class="msc-count">{{ count }}</div>
+      <div class="msc-label">
+        {% if code == 'IP' %}Inpatient
+        {% elif code == 'OP' %}Outpatient
+        {% elif code == 'ER' %}Emergency
+        {% elif code == 'UC' %}Urgent Care
+        {% else %}Day Surgery{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ── Charts Row ─────────────────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header">
+        <div class="card-header-title"><i class="fas fa-chart-donut me-2 text-primary"></i>Ward Distribution</div>
+      </div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <div style="max-width:260px;width:100%;">
+          <canvas id="wardChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card-header-title"><i class="fas fa-filter me-2 text-primary"></i>Filter Records</div>
+        <span class="text-muted small">{{ filtered_count }} match{{ filtered_count|pluralize:"es" }}</span>
+      </div>
+      <div class="card-body">
+        <form method="get" id="filterForm" class="row g-3 align-items-end">
+          <div class="col-sm-6 col-lg-3">
+            <label class="form-label small fw-semibold">Patient ID</label>
+            <input type="number" name="anon_id" class="form-control form-control-sm"
+                   placeholder="e.g. 38476" value="{{ filters.anon_id }}">
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <label class="form-label small fw-semibold">Ward Type</label>
+            <select name="ward_type" class="form-select form-select-sm">
+              <option value="">All Wards</option>
+              <option value="IP" {% if filters.ward_type == 'IP' %}selected{% endif %}>Inpatient (IP)</option>
+              <option value="OP" {% if filters.ward_type == 'OP' %}selected{% endif %}>Outpatient (OP)</option>
+              <option value="ER" {% if filters.ward_type == 'ER' %}selected{% endif %}>Emergency (ER)</option>
+              <option value="UC" {% if filters.ward_type == 'UC' %}selected{% endif %}>Urgent Care (UC)</option>
+              <option value="DS" {% if filters.ward_type == 'DS' %}selected{% endif %}>Day Surgery (DS)</option>
+            </select>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <label class="form-label small fw-semibold">Date From</label>
+            <input type="date" name="date_from" class="form-control form-control-sm"
+                   value="{{ filters.date_from }}">
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <label class="form-label small fw-semibold">Date To</label>
+            <input type="date" name="date_to" class="form-control form-control-sm"
+                   value="{{ filters.date_to }}">
+          </div>
+          <div class="col-12 d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="fas fa-filter me-1"></i>Apply Filters
+            </button>
+            {% if filters.anon_id or filters.ward_type or filters.date_from or filters.date_to %}
+              <a href="{% url 'dataset_detail' dataset.pk %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-xmark me-1"></i>Clear
+              </a>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── DataTable ──────────────────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header-title">
+      <i class="fas fa-table me-2 text-primary"></i>Records
+    </div>
+    <span class="text-muted small">Server-side pagination</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table id="recordsTable" class="table table-hover align-middle mb-0 data-table">
+        <thead>
+          <tr>
+            <th>anon_id</th>
+            <th>pat_enc_csn_id_coded</th>
+            <th>order_proc_id_coded</th>
+            <th>order_time_jittered_utc_shifted</th>
+            <th>IP</th>
+            <th>OP</th>
+            <th>ER</th>
+            <th>UC</th>
+            <th>Day Surg</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-danger"><i class="fas fa-triangle-exclamation me-2"></i>Delete Dataset</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        Permanently delete <strong>{{ dataset.name }}</strong> and all
+        <strong>{{ dataset.row_count|default:"0" }}</strong> records? This cannot be undone.
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="post" action="{% url 'dataset_delete' dataset.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger"><i class="fas fa-trash me-1"></i>Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Ward donut chart
+const ws = {{ ward_stats_json|safe }};
+new Chart(document.getElementById('wardChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['IP','OP','ER','UC','DS'],
+    datasets: [{
+      data: [ws.IP, ws.OP, ws.ER, ws.UC, ws.DS],
+      backgroundColor: ['#3b82f6','#10b981','#ef4444','#f59e0b','#8b5cf6'],
+      borderWidth: 3, borderColor: '#fff', hoverOffset: 5
+    }]
+  },
+  options: {
+    cutout: '62%',
+    plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } } }
+  }
+});
+
+// Build query string from current filters
+const urlParams = new URLSearchParams(window.location.search);
+const filterQS = {
+  anon_id:   urlParams.get('anon_id')   || '',
+  ward_type: urlParams.get('ward_type') || '',
+  date_from: urlParams.get('date_from') || '',
+  date_to:   urlParams.get('date_to')   || '',
+};
+
+// Ward badge helper
+function wardBadge(val, code, cls) {
+  return val
+    ? `<span class="ward-badge ward-${cls}">${code}</span>`
+    : `<span class="text-muted">0</span>`;
+}
+
+// DataTable with server-side processing
+$('#recordsTable').DataTable({
+  processing: true,
+  serverSide: true,
+  ajax: {
+    url: "{% url 'api_records' dataset.pk %}",
+    data: d => Object.assign(d, filterQS)
+  },
+  columns: [
+    { data: 'anon_id',               render: v => `<strong>${v}</strong>` },
+    { data: 'pat_enc_csn_id_coded' },
+    { data: 'order_proc_id_coded' },
+    { data: 'order_time',            render: v => v ? `<code>${v}</code>` : '—' },
+    { data: 'hosp_ward_IP',          render: v => wardBadge(v,'IP','ip') },
+    { data: 'hosp_ward_OP',          render: v => wardBadge(v,'OP','op') },
+    { data: 'hosp_ward_ER',          render: v => wardBadge(v,'ER','er') },
+    { data: 'hosp_ward_UC',          render: v => wardBadge(v,'UC','uc') },
+    { data: 'hosp_ward_day_surg',    render: v => wardBadge(v,'DS','ds') },
+  ],
+  pageLength: 25,
+  lengthMenu: [10, 25, 50, 100],
+  order: [[0,'asc']],
+  dom: "<'row mb-2'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
+       "<'row'<'col-12'tr>>" +
+       "<'row mt-2'<'col-sm-6 small text-muted'i><'col-sm-6 d-flex justify-content-end'p>>",
+  language: {
+    processing: '<div class="spinner-border spinner-border-sm text-primary" role="status"></div> Loading…',
+    emptyTable: 'No records match the current filters.',
+  }
+});
+</script>
+{% endblock %}

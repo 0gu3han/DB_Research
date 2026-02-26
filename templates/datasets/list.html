@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% block title %}— Datasets{% endblock %}
+{% block breadcrumb %}Datasets{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Datasets</h1>
+    <p class="page-subtitle">{{ total_count }} dataset{{ total_count|pluralize }} available</p>
+  </div>
+  <a href="{% url 'dataset_upload' %}" class="btn btn-primary">
+    <i class="fas fa-cloud-arrow-up me-2"></i>Upload New
+  </a>
+</div>
+
+<!-- Search Bar -->
+<div class="card mb-3">
+  <div class="card-body py-3">
+    <form method="get" class="d-flex gap-3 align-items-center">
+      <div class="input-group flex-grow-1">
+        <span class="input-group-text"><i class="fas fa-search"></i></span>
+        <input type="text" name="search" class="form-control"
+               placeholder="Search datasets by name or description…"
+               value="{{ search }}">
+        {% if schema %}<input type="hidden" name="schema" value="{{ schema }}">{% endif %}
+      </div>
+      <button type="submit" class="btn btn-primary">Search</button>
+      {% if search or schema %}
+        <a href="{% url 'dataset_list' %}" class="btn btn-outline-secondary">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Schema Filter Tabs -->
+<ul class="nav nav-pills mb-4 gap-1">
+  <li class="nav-item">
+    <a class="nav-link {% if not schema %}active{% endif %}"
+       href="{% url 'dataset_list' %}{% if search %}?search={{ search }}{% endif %}">
+      <i class="fas fa-layer-group me-1"></i>All
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if schema == 'ward' %}active{% endif %}"
+       href="?schema=ward{% if search %}&search={{ search }}{% endif %}">
+      <i class="fas fa-hospital me-1"></i>Ward
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if schema == 'lab' %}active{% endif %}"
+       href="?schema=lab{% if search %}&search={{ search }}{% endif %}">
+      <i class="fas fa-flask me-1"></i>Lab
+    </a>
+  </li>
+</ul>
+
+<!-- Dataset Cards Grid -->
+{% if datasets %}
+<div class="row g-4">
+  {% for ds in datasets %}
+  <div class="col-sm-6 col-xl-4">
+    <div class="dataset-card">
+      <div class="dataset-card-header">
+        <div class="dataset-card-icon">
+          {% if ds.schema_type == 'lab' %}
+            <i class="fas fa-flask"></i>
+          {% else %}
+            <i class="fas fa-file-csv"></i>
+          {% endif %}
+        </div>
+        {% if ds.schema_type == 'lab' %}
+          <span class="badge bg-info-subtle text-info border border-info-subtle ms-1" style="font-size:.7rem">
+            <i class="fas fa-flask me-1"></i>Lab
+          </span>
+        {% else %}
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1" style="font-size:.7rem">
+            <i class="fas fa-hospital me-1"></i>Ward
+          </span>
+        {% endif %}
+        <span class="status-badge status-{{ ds.status }} ms-auto">
+          {% if ds.status == 'ready' %}<i class="fas fa-circle-check me-1"></i>{% endif %}
+          {% if ds.status == 'processing' %}<i class="fas fa-spinner fa-spin me-1"></i>{% endif %}
+          {% if ds.status == 'error' %}<i class="fas fa-circle-xmark me-1"></i>{% endif %}
+          {{ ds.get_status_display }}
+        </span>
+      </div>
+
+      <div class="dataset-card-body">
+        <h3 class="dataset-card-title">{{ ds.name }}</h3>
+        <p class="dataset-card-desc">
+          {{ ds.description|default:"No description provided."|truncatechars:100 }}
+        </p>
+
+        <div class="dataset-card-meta">
+          <div class="meta-item">
+            <i class="fas fa-table-list"></i>
+            <span>{{ ds.row_count|default:"0" }} records</span>
+          </div>
+          <div class="meta-item">
+            <i class="fas fa-calendar"></i>
+            <span>{{ ds.created_at|date:"M d, Y" }}</span>
+          </div>
+          {% if ds.created_by %}
+          <div class="meta-item">
+            <i class="fas fa-user"></i>
+            <span>{{ ds.created_by.username }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="dataset-card-footer">
+        <a href="{% url 'dataset_detail' ds.pk %}" class="btn btn-primary btn-sm flex-fill">
+          <i class="fas fa-eye me-1"></i>Explore
+        </a>
+        <a href="{% url 'dataset_export' ds.pk %}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-download"></i>
+        </a>
+        <button type="button" class="btn btn-outline-danger btn-sm"
+                data-bs-toggle="modal" data-bs-target="#deleteModal{{ ds.pk }}">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div class="modal fade" id="deleteModal{{ ds.pk }}" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header border-0">
+            <h5 class="modal-title text-danger"><i class="fas fa-triangle-exclamation me-2"></i>Delete Dataset</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            Are you sure you want to delete <strong>{{ ds.name }}</strong>?
+            This will permanently remove <strong>{{ ds.row_count|default:"0" }}</strong> records and cannot be undone.
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <form method="post" action="{% url 'dataset_delete' ds.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash me-1"></i>Delete
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if datasets.has_other_pages %}
+<nav class="mt-4 d-flex justify-content-center">
+  <ul class="pagination">
+    {% if datasets.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ datasets.previous_page_number }}{% if search %}&search={{ search }}{% endif %}">
+          <i class="fas fa-chevron-left"></i>
+        </a>
+      </li>
+    {% endif %}
+    {% for num in datasets.paginator.page_range %}
+      <li class="page-item {% if datasets.number == num %}active{% endif %}">
+        <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}">{{ num }}</a>
+      </li>
+    {% endfor %}
+    {% if datasets.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ datasets.next_page_number }}{% if search %}&search={{ search }}{% endif %}">
+          <i class="fas fa-chevron-right"></i>
+        </a>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+  <i class="fas fa-database"></i>
+  <h5>No datasets found</h5>
+  {% if search %}
+    <p>No results for "<strong>{{ search }}</strong>"</p>
+    <a href="{% url 'dataset_list' %}" class="btn btn-outline-secondary mt-2">Clear Search</a>
+  {% else %}
+    <p>Upload your first CSV file to get started</p>
+    <a href="{% url 'dataset_upload' %}" class="btn btn-primary mt-2">
+      <i class="fas fa-cloud-arrow-up me-2"></i>Upload Dataset
+    </a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

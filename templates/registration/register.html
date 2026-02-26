@@ -1,0 +1,80 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ResearchDB — Register</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="/static/css/style.css" rel="stylesheet"/>
+</head>
+<body class="auth-page">
+
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-brand-icon"><i class="fas fa-database"></i></div>
+      <h1 class="auth-brand-name">ResearchDB</h1>
+      <p class="auth-brand-sub">Research Data Management Platform</p>
+    </div>
+
+    <h2 class="auth-title">Create account</h2>
+    <p class="auth-subtitle">Join ResearchDB to manage your datasets</p>
+
+    <form method="post" class="auth-form">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Username</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-user"></i></span>
+          {{ form.username }}
+        </div>
+        {% if form.username.errors %}<div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Email</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+          {{ form.email }}
+        </div>
+        {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Password</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-lock"></i></span>
+          {{ form.password1 }}
+        </div>
+        {% if form.password1.errors %}<div class="text-danger small mt-1">{{ form.password1.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="mb-4">
+        <label class="form-label fw-semibold">Confirm Password</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-lock-open"></i></span>
+          {{ form.password2 }}
+        </div>
+        {% if form.password2.errors %}<div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>{% endif %}
+      </div>
+      <button type="submit" class="btn btn-primary w-100 btn-lg">
+        <i class="fas fa-user-plus me-2"></i>Create Account
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Already have an account?
+      <a href="{% url 'login' %}">Sign in</a>
+    </div>
+  </div>
+
+  <div class="auth-bg-decoration">
+    <div class="deco-circle deco-c1"></div>
+    <div class="deco-circle deco-c2"></div>
+    <div class="deco-circle deco-c3"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
