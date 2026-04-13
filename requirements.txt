@@ -6,3 +6,4 @@ django-crispy-forms>=2.0
 crispy-bootstrap5>=0.7
 Pillow>=10.0
 python-dateutil>=2.8
+databricks-sdk
