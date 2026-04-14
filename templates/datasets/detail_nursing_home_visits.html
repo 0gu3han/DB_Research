@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+{% block title %}— {{ dataset.name }}{% endblock %}
+{% block breadcrumb %}{{ dataset.name }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet"/>
+{% endblock %}
+
+{% block content %}
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<div class="page-header flex-wrap gap-3">
+  <div>
+    <h1 class="page-title">{{ dataset.name }}</h1>
+    <p class="page-subtitle mb-0">
+      <span class="status-badge status-{{ dataset.status }} me-2">
+        {% if dataset.status == 'ready' %}<i class="fas fa-circle-check me-1"></i>{% endif %}
+        {{ dataset.get_status_display }}
+      </span>
+      <span class="badge schema-badge-nhv me-1">
+        <i class="fas fa-house-medical me-1"></i>NH Visits
+      </span>
+      {{ dataset.row_count|default:"0" }} records ·
+      {{ unique_patients }} unique patients ·
+      {{ dataset.created_at|date:"M d, Y" }}
+      {% if dataset.created_by %} · by {{ dataset.created_by.username }}{% endif %}
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'dataset_export' dataset.pk %}" class="btn btn-outline-primary btn-sm">
+      <i class="fas fa-download me-1"></i>Export CSV
+    </a>
+    <button type="button" class="btn btn-outline-danger btn-sm"
+            data-bs-toggle="modal" data-bs-target="#deleteModal">
+      <i class="fas fa-trash me-1"></i>Delete
+    </button>
+    <a href="{% url 'dataset_list' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Back
+    </a>
+  </div>
+</div>
+
+<!-- ── Summary Stats Row ──────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4">
+    <div class="stat-card stat-light h-100">
+      <div class="stat-icon" style="background:rgba(139,92,246,.12);color:#8b5cf6">
+        <i class="fas fa-table-list"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-number">{{ total_records|default:"0" }}</div>
+        <div class="stat-label" style="opacity:1;color:var(--navy-400)">Total Records</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="stat-card stat-light h-100">
+      <div class="stat-icon" style="background:rgba(16,185,129,.12);color:#10b981">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-number">{{ unique_patients }}</div>
+        <div class="stat-label" style="opacity:1;color:var(--navy-400)">Unique Patients</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="stat-card stat-light h-100">
+      <div class="stat-icon" style="background:rgba(6,182,212,.12);color:#06b6d4">
+        <i class="fas fa-vial"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-number">{{ valid_cultures }}</div>
+        <div class="stat-label" style="opacity:1;color:var(--navy-400)">Valid Culture Records</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main Row ───────────────────────────────────────────────────────────── -->
+<div class="row g-4">
+
+  <!-- Filter Sidebar -->
+  <div class="col-lg-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0 pb-0">
+        <h6 class="fw-semibold mb-0"><i class="fas fa-filter me-2 text-primary"></i>Filters</h6>
+      </div>
+      <div class="card-body">
+        <form method="GET" id="filterForm">
+          <div class="mb-3">
+            <label class="form-label small fw-medium">Anon ID</label>
+            <input type="number" name="anon_id" class="form-control form-control-sm"
+                   placeholder="e.g. 12345" value="{{ filters.anon_id }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-medium">Culture Min</label>
+            <input type="number" name="culture_min" class="form-control form-control-sm"
+                   placeholder="Min" value="{{ filters.culture_min }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-medium">Culture Max</label>
+            <input type="number" name="culture_max" class="form-control form-control-sm"
+                   placeholder="Max" value="{{ filters.culture_max }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-medium">Date From</label>
+            <input type="date" name="date_from" class="form-control form-control-sm"
+                   value="{{ filters.date_from }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-medium">Date To</label>
+            <input type="date" name="date_to" class="form-control form-control-sm"
+                   value="{{ filters.date_to }}">
+          </div>
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="fas fa-search me-1"></i>Apply
+            </button>
+            <a href="{% url 'dataset_detail' dataset.pk %}" class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-xmark me-1"></i>Clear
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column -->
+  <div class="col-lg-9">
+    <!-- Bar Chart -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex align-items-center gap-2">
+        <i class="fas fa-chart-column text-primary"></i>
+        <h6 class="fw-semibold mb-0">Culture Value Distribution</h6>
+      </div>
+      <div class="card-body" style="height:220px">
+        <canvas id="nhvChart"></canvas>
+      </div>
+    </div>
+
+    <!-- DataTable -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0 d-flex align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-table text-primary"></i>
+          <h6 class="fw-semibold mb-0">Records</h6>
+        </div>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="rowCount">—</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table id="nhvTable" class="table table-hover table-sm align-middle mb-0 small" style="width:100%">
+            <thead class="table-light">
+              <tr>
+                <th>Anon ID</th>
+                <th>Encounter ID</th>
+                <th>Order/Proc ID</th>
+                <th>Culture Value</th>
+                <th>Order Time</th>
+                <th>Visit Date</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title"><i class="fas fa-triangle-exclamation text-danger me-2"></i>Delete Dataset</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-muted">
+        Delete <strong>{{ dataset.name }}</strong>? This will permanently remove all
+        <strong>{{ dataset.row_count|default:"0" }}</strong> nursing home visit records. This cannot be undone.
+      </div>
+      <div class="modal-footer border-0">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="POST" action="{% url 'dataset_delete' dataset.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash me-1"></i>Delete
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const cultureDist = {{ culture_dist_json|safe }};
+const nhvCtx = document.getElementById('nhvChart');
+if (nhvCtx && cultureDist.length) {
+  new Chart(nhvCtx, {
+    type: 'bar',
+    data: {
+      labels: cultureDist.map(d => 'Value ' + d.value),
+      datasets: [{
+        label: 'Records',
+        data: cultureDist.map(d => d.count),
+        backgroundColor: cultureDist.map((_, i) => `hsl(${270 + i * 20}, 65%, ${50 + (i % 4) * 5}%)`),
+        borderRadius: 5, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' },
+             ticks: { color: '#64748b', font: { size: 11 } } },
+        x: { grid: { display: false },
+             ticks: { color: '#374151', font: { size: 11 } } },
+      }
+    }
+  });
+}
+
+function getFilters() {
+  const p = {};
+  const form = document.getElementById('filterForm');
+  ['anon_id','culture_min','culture_max','date_from','date_to'].forEach(n => {
+    const el = form.querySelector(`[name="${n}"]`);
+    if (el && el.value.trim()) p[n] = el.value.trim();
+  });
+  return p;
+}
+
+new DataTable('#nhvTable', {
+  processing: true,
+  serverSide: true,
+  ajax: {
+    url: '{% url "api_records" dataset.pk %}',
+    data: d => Object.assign(d, getFilters()),
+  },
+  columns: [
+    { data: 'anon_id' },
+    { data: 'pat_enc_csn_id_coded' },
+    { data: 'order_proc_id_coded' },
+    { data: 'nursing_home_visit_culture', render: v => v === null ? '<span class="text-muted">—</span>' : `<strong>${v}</strong>` },
+    { data: 'order_time', render: v => v || '<span class="text-muted">—</span>' },
+    { data: 'visit_date', render: v => v || '<span class="text-muted">—</span>' },
+  ],
+  pageLength: 25,
+  lengthMenu: [[10,25,50,100],[10,25,50,100]],
+  order: [[0,'asc']],
+  language: {
+    processing: '<div class="spinner-border spinner-border-sm text-primary" role="status"></div>',
+    emptyTable: 'No records match the current filters.',
+  },
+  drawCallback: s => {
+    document.getElementById('rowCount').textContent = s.json.recordsFiltered.toLocaleString() + ' rows';
+  },
+});
+</script>
+{% endblock %}

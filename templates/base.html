@@ -5,17 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ResearchDB {% block title %}{% endblock %}</title>
 
+  <!-- ⚡ Inline theme script — must run BEFORE any CSS renders to avoid FOUC -->
+  <script>
+    (function(){
+      try {
+        var t = localStorage.getItem('theme');
+        if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+      } catch(e) {}
+    })();
+  </script>
+
+  <!-- Performance: preconnect to CDN origins -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin/>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+
+  <!-- Google Fonts (swap prevents render-blocking) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <!-- Font Awesome 6 -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
-  <!-- DataTables Bootstrap 5 -->
-  <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet"/>
-  <link href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css" rel="stylesheet"/>
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <!-- Custom CSS -->
   <link href="/static/css/style.css" rel="stylesheet"/>
+  <!-- Schema badge colours — inlined to bypass browser static-file caching -->
+  <style>
+    .badge.schema-badge-ward        { background-color:#dbeafe!important; color:#1e40af!important; border:1px solid #93c5fd!important; }
+    .badge.schema-badge-lab         { background-color:#cffafe!important; color:#155e75!important; border:1px solid #67e8f9!important; }
+    .badge.schema-badge-adi         { background-color:#ffedd5!important; color:#9a3412!important; border:1px solid #fb923c!important; }
+    .badge.schema-badge-comorbidity { background-color:#fee2e2!important; color:#991b1b!important; border:1px solid #fca5a5!important; }
+    .badge.schema-badge-demographics{ background-color:#dcfce7!important; color:#166534!important; border:1px solid #86efac!important; }
+    .badge.schema-badge-nhv         { background-color:#ede9fe!important; color:#5b21b6!important; border:1px solid #c4b5fd!important; }
+    [data-theme="dark"] .badge.schema-badge-ward        { background-color:rgba(59,130,246,.25)!important;  color:#93c5fd!important; border-color:rgba(59,130,246,.5)!important;  }
+    [data-theme="dark"] .badge.schema-badge-lab         { background-color:rgba(6,182,212,.25)!important;   color:#67e8f9!important; border-color:rgba(6,182,212,.5)!important;   }
+    [data-theme="dark"] .badge.schema-badge-adi         { background-color:rgba(234,88,12,.25)!important;   color:#fb923c!important; border-color:rgba(234,88,12,.5)!important;   }
+    [data-theme="dark"] .badge.schema-badge-comorbidity { background-color:rgba(239,68,68,.25)!important;   color:#f87171!important; border-color:rgba(239,68,68,.5)!important;   }
+    [data-theme="dark"] .badge.schema-badge-demographics{ background-color:rgba(16,185,129,.25)!important;  color:#34d399!important; border-color:rgba(16,185,129,.5)!important;  }
+    [data-theme="dark"] .badge.schema-badge-nhv         { background-color:rgba(139,92,246,.25)!important;  color:#a78bfa!important; border-color:rgba(139,92,246,.5)!important;  }
+  </style>
   {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -32,20 +60,26 @@
 
   <div class="sidebar-section-label">Navigation</div>
   <nav class="sidebar-nav">
-    <a href="{% url 'home' %}" class="nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+    <a href="{% url 'home' %}"
+       data-tooltip="Dashboard"
+       class="nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
       <i class="fas fa-gauge-high"></i><span>Dashboard</span>
     </a>
-    <a href="{% url 'dataset_list' %}" class="nav-item {% if 'dataset' in request.resolver_match.url_name and request.resolver_match.url_name != 'dataset_upload' %}active{% endif %}">
+    <a href="{% url 'dataset_list' %}"
+       data-tooltip="Datasets"
+       class="nav-item {% if 'dataset' in request.resolver_match.url_name and request.resolver_match.url_name != 'dataset_upload' %}active{% endif %}">
       <i class="fas fa-table-list"></i><span>Datasets</span>
     </a>
-    <a href="{% url 'dataset_upload' %}" class="nav-item {% if request.resolver_match.url_name == 'dataset_upload' %}active{% endif %}">
+    <a href="{% url 'dataset_upload' %}"
+       data-tooltip="Upload Data"
+       class="nav-item {% if request.resolver_match.url_name == 'dataset_upload' %}active{% endif %}">
       <i class="fas fa-cloud-arrow-up"></i><span>Upload Data</span>
     </a>
   </nav>
 
   <div class="sidebar-section-label">System</div>
   <nav class="sidebar-nav">
-    <a href="/admin/" class="nav-item" target="_blank">
+    <a href="/admin/" data-tooltip="Admin Panel" class="nav-item" target="_blank">
       <i class="fas fa-screwdriver-wrench"></i><span>Admin Panel</span>
     </a>
   </nav>
@@ -78,13 +112,18 @@
       </div>
     </div>
     <div class="topbar-right">
+      <!-- Dark mode toggle -->
+      <button class="theme-toggle-btn" id="themeToggle" title="Toggle dark mode">
+        <i class="fas fa-moon theme-icon-light"></i>
+        <i class="fas fa-sun  theme-icon-dark"></i>
+      </button>
       {% if user.is_authenticated %}
         <div class="user-chip">
           <div class="user-avatar">{{ user.username|first|upper }}</div>
-          <span class="user-name">{{ user.username }}</span>
+          <span class="user-name d-none d-sm-block">{{ user.username }}</span>
         </div>
-        <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-danger ms-2">
-          <i class="fas fa-right-from-bracket me-1"></i>Logout
+        <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-danger ms-1">
+          <i class="fas fa-right-from-bracket me-1"></i><span class="d-none d-sm-inline">Logout</span>
         </a>
       {% else %}
         <a href="{% url 'login' %}" class="btn btn-sm btn-primary">
@@ -123,16 +162,12 @@
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <!-- ═══════════════════ SCRIPTS ═════════════════════════════════════════════ -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- Core: Bootstrap + Chart.js (always needed) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="/static/js/app.js"></script>
+<!-- Page-specific libraries (e.g. jQuery + DataTables on detail pages) -->
+{% block page_scripts %}{% endblock %}
 {% block extra_js %}{% endblock %}
 </body>
 </html>

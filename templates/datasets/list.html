@@ -33,7 +33,7 @@
 </div>
 
 <!-- Schema Filter Tabs -->
-<ul class="nav nav-pills mb-4 gap-1">
+<ul class="nav nav-pills mb-4 gap-1 flex-wrap">
   <li class="nav-item">
     <a class="nav-link {% if not schema %}active{% endif %}"
        href="{% url 'dataset_list' %}{% if search %}?search={{ search }}{% endif %}">
@@ -52,6 +52,30 @@
       <i class="fas fa-flask me-1"></i>Lab
     </a>
   </li>
+  <li class="nav-item">
+    <a class="nav-link {% if schema == 'ADI' %}active{% endif %}"
+       href="?schema=ADI{% if search %}&search={{ search }}{% endif %}">
+      <i class="fas fa-map-pin me-1"></i>ADI
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if schema == 'comorbidity' %}active{% endif %}"
+       href="?schema=comorbidity{% if search %}&search={{ search }}{% endif %}">
+      <i class="fas fa-heartbeat me-1"></i>Comorbidity
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if schema == 'demographics' %}active{% endif %}"
+       href="?schema=demographics{% if search %}&search={{ search }}{% endif %}">
+      <i class="fas fa-users me-1"></i>Demographics
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if schema == 'nursing_home_visits' %}active{% endif %}"
+       href="?schema=nursing_home_visits{% if search %}&search={{ search }}{% endif %}">
+      <i class="fas fa-house-medical me-1"></i>NH Visits
+    </a>
+  </li>
 </ul>
 
 <!-- Dataset Cards Grid -->
@@ -62,19 +86,37 @@
     <div class="dataset-card">
       <div class="dataset-card-header">
         <div class="dataset-card-icon">
-          {% if ds.schema_type == 'lab' %}
-            <i class="fas fa-flask"></i>
-          {% else %}
-            <i class="fas fa-file-csv"></i>
+          {% if ds.schema_type == 'lab' %}<i class="fas fa-flask"></i>
+          {% elif ds.schema_type == 'ADI' %}<i class="fas fa-map-pin"></i>
+          {% elif ds.schema_type == 'comorbidity' %}<i class="fas fa-heartbeat"></i>
+          {% elif ds.schema_type == 'demographics' %}<i class="fas fa-users"></i>
+          {% elif ds.schema_type == 'nursing_home_visits' %}<i class="fas fa-house-medical"></i>
+          {% else %}<i class="fas fa-file-csv"></i>
           {% endif %}
         </div>
         {% if ds.schema_type == 'lab' %}
-          <span class="badge bg-info-subtle text-info border border-info-subtle ms-1" style="font-size:.7rem">
+          <span class="badge schema-badge-lab ms-1" style="font-size:.7rem">
             <i class="fas fa-flask me-1"></i>Lab
           </span>
+        {% elif ds.schema_type == 'ADI' %}
+          <span class="badge schema-badge-adi ms-1" style="font-size:.7rem">
+            <i class="fas fa-map-pin me-1"></i>ADI
+          </span>
+        {% elif ds.schema_type == 'comorbidity' %}
+          <span class="badge schema-badge-comorbidity ms-1" style="font-size:.7rem">
+            <i class="fas fa-heartbeat me-1"></i>Comorbidity
+          </span>
+        {% elif ds.schema_type == 'demographics' %}
+          <span class="badge schema-badge-demographics ms-1" style="font-size:.7rem">
+            <i class="fas fa-users me-1"></i>Demographics
+          </span>
+        {% elif ds.schema_type == 'nursing_home_visits' %}
+          <span class="badge schema-badge-nhv ms-1" style="font-size:.7rem">
+            <i class="fas fa-house-medical me-1"></i>NH Visits
+          </span>
         {% else %}
-          <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1" style="font-size:.7rem">
-            <i class="fas fa-hospital me-1"></i>Ward
+          <span class="badge schema-badge-ward ms-1" style="font-size:.7rem">
+            <i class="fas fa-hospital-user me-1"></i>Ward
           </span>
         {% endif %}
         <span class="status-badge status-{{ ds.status }} ms-auto">

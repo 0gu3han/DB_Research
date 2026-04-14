@@ -2,6 +2,7 @@
 {% block title %}— Upload Dataset{% endblock %}
 {% block breadcrumb %}Upload Dataset{% endblock %}
 
+
 {% block content %}
 <div class="page-header">
   <div>
@@ -103,56 +104,93 @@
         </p>
 
         <!-- Ward schema -->
-        <div id="hintWard" class="schema-table">
-          <div class="schema-row schema-header">
-            <span>Column</span><span>Type</span><span>Description</span>
-          </div>
-          <div class="schema-row">
-            <code>anon_id</code><span class="type-badge">integer</span><span>Anonymised patient ID</span>
-          </div>
-          <div class="schema-row">
-            <code>pat_enc_csn_id_coded</code><span class="type-badge">integer</span><span>Encounter ID</span>
-          </div>
-          <div class="schema-row">
-            <code>order_proc_id_coded</code><span class="type-badge">integer</span><span>Order/procedure ID</span>
-          </div>
-          <div class="schema-row">
-            <code>order_time_jittered_utc_shifted</code><span class="type-badge">date</span><span>Order timestamp</span>
-          </div>
-          <div class="schema-row">
-            <code>hosp_ward_IP</code><span class="type-badge">0/1</span><span class="ward-hint ward-ip">Inpatient</span>
-          </div>
-          <div class="schema-row">
-            <code>hosp_ward_OP</code><span class="type-badge">0/1</span><span class="ward-hint ward-op">Outpatient</span>
-          </div>
-          <div class="schema-row">
-            <code>hosp_ward_ER</code><span class="type-badge">0/1</span><span class="ward-hint ward-er">Emergency</span>
-          </div>
-          <div class="schema-row">
-            <code>hosp_ward_UC</code><span class="type-badge">0/1</span><span class="ward-hint ward-uc">Urgent Care</span>
-          </div>
-          <div class="schema-row">
-            <code>hosp_ward_day_surg</code><span class="type-badge">0/1</span><span class="ward-hint ward-ds">Day Surgery</span>
-          </div>
+        <div id="hintWard">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>anon_id</code></td><td><span class="type-badge">integer</span></td><td>Anonymised patient ID</td></tr>
+              <tr><td><code>pat_enc_csn_id_coded</code></td><td><span class="type-badge">integer</span></td><td>Encounter ID</td></tr>
+              <tr><td><code>order_proc_id_coded</code></td><td><span class="type-badge">integer</span></td><td>Order / procedure ID</td></tr>
+              <tr><td><code>order_time_jittered_utc_shifted</code></td><td><span class="type-badge">date</span></td><td>Order timestamp</td></tr>
+              <tr><td><code>hosp_ward_IP</code></td><td><span class="type-badge">0 / 1</span></td><td class="ward-hint ward-ip">Inpatient</td></tr>
+              <tr><td><code>hosp_ward_OP</code></td><td><span class="type-badge">0 / 1</span></td><td class="ward-hint ward-op">Outpatient</td></tr>
+              <tr><td><code>hosp_ward_ER</code></td><td><span class="type-badge">0 / 1</span></td><td class="ward-hint ward-er">Emergency</td></tr>
+              <tr><td><code>hosp_ward_UC</code></td><td><span class="type-badge">0 / 1</span></td><td class="ward-hint ward-uc">Urgent Care</td></tr>
+              <tr><td><code>hosp_ward_day_surg</code></td><td><span class="type-badge">0 / 1</span></td><td class="ward-hint ward-ds">Day Surgery</td></tr>
+            </tbody>
+          </table>
         </div>
 
         <!-- Lab schema -->
-        <div id="hintLab" class="schema-table d-none">
-          <div class="schema-row schema-header">
-            <span>Column</span><span>Type</span><span>Description</span>
-          </div>
-          <div class="schema-row">
-            <code>caseid</code><span class="type-badge">integer</span><span>Patient / case identifier</span>
-          </div>
-          <div class="schema-row">
-            <code>dt</code><span class="type-badge">integer</span><span>Time offset (large int)</span>
-          </div>
-          <div class="schema-row">
-            <code>name</code><span class="type-badge">string</span><span>Lab test code (e.g. alb, wbc)</span>
-          </div>
-          <div class="schema-row">
-            <code>result</code><span class="type-badge">float</span><span>Numeric result value</span>
-          </div>
+        <div id="hintLab" class="d-none">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>caseid</code></td><td><span class="type-badge">integer</span></td><td>Patient / case identifier</td></tr>
+              <tr><td><code>dt</code></td><td><span class="type-badge">integer</span></td><td>Time offset (large int)</td></tr>
+              <tr><td><code>name</code></td><td><span class="type-badge">string</span></td><td>Lab test code (e.g. alb, wbc)</td></tr>
+              <tr><td><code>result</code></td><td><span class="type-badge">float</span></td><td>Numeric result value</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ADI schema -->
+        <div id="hintADI" class="d-none">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>anon_id</code></td><td><span class="type-badge">integer</span></td><td>Anonymised patient ID</td></tr>
+              <tr><td><code>pat_enc_csn_id_coded</code></td><td><span class="type-badge">integer</span></td><td>Encounter ID</td></tr>
+              <tr><td><code>order_proc_id_coded</code></td><td><span class="type-badge">integer</span></td><td>Order / procedure ID</td></tr>
+              <tr><td><code>adi_score</code></td><td><span class="type-badge">float</span></td><td>ADI score value</td></tr>
+              <tr><td><code>adi_state_rank</code></td><td><span class="type-badge">integer</span></td><td>State-level ADI rank</td></tr>
+              <tr><td><code>order_time_jittered_utc_shifted</code></td><td><span class="type-badge">date</span></td><td>Order timestamp <span class="text-muted">(optional)</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Comorbidity schema -->
+        <div id="hintComorbidity" class="d-none">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>anon_id</code></td><td><span class="type-badge">integer</span></td><td>Anonymised patient ID</td></tr>
+              <tr><td><code>pat_enc_csn_id_coded</code></td><td><span class="type-badge">integer</span></td><td>Encounter ID</td></tr>
+              <tr><td><code>order_proc_id_coded</code></td><td><span class="type-badge">integer</span></td><td>Order / procedure ID</td></tr>
+              <tr><td><code>ICD10</code></td><td><span class="type-badge">string</span></td><td>ICD-10 diagnosis code</td></tr>
+              <tr><td><code>category</code></td><td><span class="type-badge">string</span></td><td>Comorbidity category <span class="text-muted">(optional)</span></td></tr>
+              <tr><td><code>order_time_jittered_utc_shifted</code></td><td><span class="type-badge">date</span></td><td>Order timestamp <span class="text-muted">(optional)</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Demographics schema -->
+        <div id="hintDemographics" class="d-none">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>anon_id</code></td><td><span class="type-badge">integer</span></td><td>Anonymised patient ID</td></tr>
+              <tr><td><code>pat_enc_csn_id_coded</code></td><td><span class="type-badge">integer</span></td><td>Encounter ID</td></tr>
+              <tr><td><code>order_proc_id_coded</code></td><td><span class="type-badge">integer</span></td><td>Order / procedure ID</td></tr>
+              <tr><td><code>age</code></td><td><span class="type-badge">integer</span></td><td>Patient age <span class="text-muted">(optional)</span></td></tr>
+              <tr><td><code>gender</code></td><td><span class="type-badge">string</span></td><td>Patient gender <span class="text-muted">(optional)</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Nursing Home Visits schema -->
+        <div id="hintNursingHomeVisits" class="d-none">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>anon_id</code></td><td><span class="type-badge">integer</span></td><td>Anonymised patient ID</td></tr>
+              <tr><td><code>pat_enc_csn_id_coded</code></td><td><span class="type-badge">integer</span></td><td>Encounter ID</td></tr>
+              <tr><td><code>order_proc_id_coded</code></td><td><span class="type-badge">integer</span></td><td>Order / procedure ID</td></tr>
+              <tr><td><code>nursing_home_visit_culture</code></td><td><span class="type-badge">integer</span></td><td>Culture flag value</td></tr>
+              <tr><td><code>order_time_jittered_utc_shifted</code></td><td><span class="type-badge">date</span></td><td>Order timestamp <span class="text-muted">(optional)</span></td></tr>
+              <tr><td><code>visit_date_shifted</code></td><td><span class="type-badge">date</span></td><td>Visit date <span class="text-muted">(optional)</span></td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -223,38 +261,99 @@ function setFilePreview(file) {
 
 // Schema switcher
 const schemaSelect = document.getElementById('schemaType');
-const hintWard = document.getElementById('hintWard');
-const hintLab  = document.getElementById('hintLab');
+const schemaHints = {
+  ward:                 document.getElementById('hintWard'),
+  lab:                  document.getElementById('hintLab'),
+  ADI:                  document.getElementById('hintADI'),
+  comorbidity:          document.getElementById('hintComorbidity'),
+  demographics:         document.getElementById('hintDemographics'),
+  nursing_home_visits:  document.getElementById('hintNursingHomeVisits'),
+};
 function updateHints() {
-  if (schemaSelect.value === 'lab') {
-    hintWard.classList.add('d-none');
-    hintLab.classList.remove('d-none');
-  } else {
-    hintWard.classList.remove('d-none');
-    hintLab.classList.add('d-none');
-  }
+  const val = schemaSelect ? schemaSelect.value : 'ward';
+  Object.entries(schemaHints).forEach(([key, el]) => {
+    if (!el) return;
+    el.classList.toggle('d-none', key !== val);
+  });
 }
 schemaSelect && schemaSelect.addEventListener('change', updateHints);
 updateHints();
 
-// Upload progress simulation
-document.getElementById('uploadForm').addEventListener('submit', () => {
-  const btn = document.getElementById('submitBtn');
-  const prog = document.getElementById('uploadProgress');
-  const bar  = document.getElementById('progressBar');
-  const pct  = document.getElementById('progressText');
+// Upload progress — real XHR so we get actual upload events
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const form   = this;
+  const btn    = document.getElementById('submitBtn');
+  const prog   = document.getElementById('uploadProgress');
+  const bar    = document.getElementById('progressBar');
+  const pct    = document.getElementById('progressText');
+  const label  = prog.querySelector('span:first-child');
 
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing…';
   prog.classList.remove('d-none');
 
-  let p = 0;
-  const iv = setInterval(() => {
-    p = Math.min(p + Math.random() * 8, 90);
+  function setProgress(p, text) {
     bar.style.width = p + '%';
     pct.textContent = Math.round(p) + '%';
-    if (p >= 90) clearInterval(iv);
-  }, 300);
+    if (text) label.textContent = text;
+  }
+
+  const xhr = new XMLHttpRequest();
+  let processingInterval = null;
+
+  // Phase 1: actual file upload progress (0 → 70%)
+  xhr.upload.addEventListener('progress', function(e) {
+    if (e.lengthComputable) {
+      const uploadPct = (e.loaded / e.total) * 70;
+      setProgress(uploadPct, 'Uploading…');
+    }
+  });
+
+  xhr.upload.addEventListener('load', function() {
+    // Phase 2: server is processing — animate 70 → 97% slowly
+    setProgress(70, 'Processing…');
+    let p = 70;
+    processingInterval = setInterval(function() {
+      // Slow exponential approach toward 97% — never reaches it
+      p += (97 - p) * 0.04;
+      setProgress(p, 'Processing…');
+    }, 400);
+  });
+
+  xhr.addEventListener('load', function() {
+    clearInterval(processingInterval);
+    setProgress(100, 'Done!');
+    bar.classList.remove('progress-bar-animated');
+
+    // Follow the redirect or reload the current URL from the response
+    const redirected = xhr.responseURL;
+    if (redirected && redirected !== window.location.href) {
+      window.location.href = redirected;
+    } else {
+      // Server returned a page inline (e.g. form errors) — swap document
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xhr.responseText, 'text/html');
+      document.open();
+      document.write(doc.documentElement.outerHTML);
+      document.close();
+    }
+  });
+
+  xhr.addEventListener('error', function() {
+    clearInterval(processingInterval);
+    setProgress(0, 'Upload failed');
+    bar.classList.remove('progress-bar-animated');
+    bar.classList.add('bg-danger');
+    pct.textContent = 'Error';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-cloud-arrow-up me-2"></i>Upload & Process Dataset';
+  });
+
+  xhr.open('POST', form.action || window.location.pathname);
+  xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+  xhr.send(new FormData(form));
 });
 </script>
 {% endblock %}

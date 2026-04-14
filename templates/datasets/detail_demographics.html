@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+{% block title %}— {{ dataset.name }}{% endblock %}
+{% block breadcrumb %}{{ dataset.name }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet"/>
+{% endblock %}
+
+{% block content %}
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<div class="page-header flex-wrap gap-3">
+  <div>
+    <h1 class="page-title">{{ dataset.name }}</h1>
+    <p class="page-subtitle mb-0">
+      <span class="status-badge status-{{ dataset.status }} me-2">
+        {% if dataset.status == 'ready' %}<i class="fas fa-circle-check me-1"></i>{% endif %}
+        {{ dataset.get_status_display }}
+      </span>
+      <span class="badge schema-badge-demographics me-1">
+        <i class="fas fa-users me-1"></i>Demographics
+      </span>
+      {{ dataset.row_count|default:"0" }} records ·
+      {{ unique_patients }} unique patients ·
+      {{ dataset.created_at|date:"M d, Y" }}
+      {% if dataset.created_by %} · by {{ dataset.created_by.username }}{% endif %}
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'dataset_export' dataset.pk %}" class="btn btn-outline-primary btn-sm">
+      <i class="fas fa-download me-1"></i>Export CSV
+    </a>
+    <button type="button" class="btn btn-outline-danger btn-sm"
+            data-bs-toggle="modal" data-bs-target="#deleteModal">
+      <i class="fas fa-trash me-1"></i>Delete
+    </button>
+    <a href="{% url 'dataset_list' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Back
+    </a>
+  </div>
+</div>
+
+<!-- ── Summary Stats Row ──────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4">
+    <div class="stat-card stat-light h-100">
+      <div class="stat-icon" style="background:rgba(16,185,129,.12);color:#10b981">
+        <i class="fas fa-table-list"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-number">{{ total_records|default:"0" }}</div>
+        <div class="stat-label" style="opacity:1;color:var(--navy-400)">Total Records</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="stat-card stat-light h-100">
+      <div class="stat-icon" style="background:rgba(99,102,241,.12);color:#6366f1">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-number">{{ unique_patients }}</div>
+        <div class="stat-label" style="opacity:1;color:var(--navy-400)">Unique Patients</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="stat-card stat-light h-100">
+      <div class="stat-icon" style="background:rgba(245,158,11,.12);color:#f59e0b">
+        <i class="fas fa-venus-mars"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-number">{{ available_genders|length }}</div>
+        <div class="stat-label" style="opacity:1;color:var(--navy-400)">Gender Categories</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main Row ───────────────────────────────────────────────────────────── -->
+<div class="row g-4">
+
+  <!-- Filter Sidebar -->
+  <div class="col-lg-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0 pb-0">
+        <h6 class="fw-semibold mb-0"><i class="fas fa-filter me-2 text-primary"></i>Filters</h6>
+      </div>
+      <div class="card-body">
+        <form method="GET" id="filterForm">
+          <div class="mb-3">
+            <label class="form-label small fw-medium">Anon ID</label>
+            <input type="number" name="anon_id" class="form-control form-control-sm"
+                   placeholder="e.g. 12345" value="{{ filters.anon_id }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-medium">Gender</label>
+            <select name="gender" class="form-select form-select-sm">
+              <option value="">All genders</option>
+              {% for g in available_genders %}
+              <option value="{{ g }}" {% if filters.gender == g %}selected{% endif %}>{{ g }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-medium">Age</label>
+            <input type="number" name="age" class="form-control form-control-sm"
+                   placeholder="Exact age" value="{{ filters.age }}">
+          </div>
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="fas fa-search me-1"></i>Apply
+            </button>
+            <a href="{% url 'dataset_detail' dataset.pk %}" class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-xmark me-1"></i>Clear
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column -->
+  <div class="col-lg-9">
+    <!-- Charts side by side -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-7">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-transparent border-0 d-flex align-items-center gap-2">
+            <i class="fas fa-chart-column text-primary"></i>
+            <h6 class="fw-semibold mb-0">Age Distribution</h6>
+          </div>
+          <div class="card-body" style="height:220px">
+            <canvas id="ageChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-5">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-transparent border-0 d-flex align-items-center gap-2">
+            <i class="fas fa-chart-pie text-primary"></i>
+            <h6 class="fw-semibold mb-0">Gender Distribution</h6>
+          </div>
+          <div class="card-body d-flex align-items-center justify-content-center" style="height:220px">
+            <canvas id="genderChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DataTable -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0 d-flex align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-table text-primary"></i>
+          <h6 class="fw-semibold mb-0">Records</h6>
+        </div>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="rowCount">—</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table id="demoTable" class="table table-hover table-sm align-middle mb-0 small" style="width:100%">
+            <thead class="table-light">
+              <tr>
+                <th>Anon ID</th>
+                <th>Encounter ID</th>
+                <th>Order/Proc ID</th>
+                <th>Age</th>
+                <th>Gender</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title"><i class="fas fa-triangle-exclamation text-danger me-2"></i>Delete Dataset</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-muted">
+        Delete <strong>{{ dataset.name }}</strong>? This will permanently remove all
+        <strong>{{ dataset.row_count|default:"0" }}</strong> demographics records. This cannot be undone.
+      </div>
+      <div class="modal-footer border-0">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="POST" action="{% url 'dataset_delete' dataset.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash me-1"></i>Delete
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ageDist    = {{ age_dist_json|safe }};
+const genderData = {{ gender_counts_json|safe }};
+
+const ageCtx = document.getElementById('ageChart');
+if (ageCtx && ageDist.length) {
+  new Chart(ageCtx, {
+    type: 'bar',
+    data: {
+      labels: ageDist.map(d => d.bucket),
+      datasets: [{
+        label: 'Patients',
+        data: ageDist.map(d => d.count),
+        backgroundColor: ageDist.map((_, i) => `hsl(${150 + i * 12}, 65%, ${50 + (i % 4) * 5}%)`),
+        borderRadius: 5, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' },
+             ticks: { color: '#64748b', font: { size: 11 } } },
+        x: { grid: { display: false },
+             ticks: { color: '#374151', font: { size: 11 } } },
+      }
+    }
+  });
+}
+
+const genderCtx = document.getElementById('genderChart');
+if (genderCtx && genderData.length) {
+  const palette = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+  new Chart(genderCtx, {
+    type: 'doughnut',
+    data: {
+      labels: genderData.map(g => g.gender || '(unknown)'),
+      datasets: [{
+        data: genderData.map(g => g.count),
+        backgroundColor: palette.slice(0, genderData.length),
+        borderWidth: 2,
+        borderColor: '#ffffff',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 12 } } },
+      },
+      cutout: '60%',
+    }
+  });
+}
+
+function getFilters() {
+  const p = {};
+  const form = document.getElementById('filterForm');
+  ['anon_id','gender','age'].forEach(n => {
+    const el = form.querySelector(`[name="${n}"]`);
+    if (el && el.value.trim()) p[n] = el.value.trim();
+  });
+  return p;
+}
+
+new DataTable('#demoTable', {
+  processing: true,
+  serverSide: true,
+  ajax: {
+    url: '{% url "api_records" dataset.pk %}',
+    data: d => Object.assign(d, getFilters()),
+  },
+  columns: [
+    { data: 'anon_id' },
+    { data: 'pat_enc_csn_id_coded' },
+    { data: 'order_proc_id_coded' },
+    { data: 'age', render: v => v === null ? '<span class="text-muted">—</span>' : v },
+    { data: 'gender', render: v => v || '<span class="text-muted">—</span>' },
+  ],
+  pageLength: 25,
+  lengthMenu: [[10,25,50,100],[10,25,50,100]],
+  order: [[0,'asc']],
+  language: {
+    processing: '<div class="spinner-border spinner-border-sm text-primary" role="status"></div>',
+    emptyTable: 'No records match the current filters.',
+  },
+  drawCallback: s => {
+    document.getElementById('rowCount').textContent = s.json.recordsFiltered.toLocaleString() + ' rows';
+  },
+});
+</script>
+{% endblock %}
