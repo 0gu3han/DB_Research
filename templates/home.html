@@ -27,9 +27,17 @@
       <div class="stat-body">
         <div class="stat-number">{{ total_datasets }}</div>
         <div class="stat-label">Total Datasets</div>
-        <div class="small text-muted mt-1">
-          <span class="text-primary">{{ ward_datasets }} ward</span> &middot;
-          <span class="text-info">{{ lab_datasets }} lab</span>
+        <div class="small mt-1" style="color:rgba(255,255,255,.7);line-height:1.7">
+          <div>
+            <span style="color:rgba(255,255,255,.95);font-weight:600;">{{ ward_datasets }}</span> ward
+            &middot; <span style="color:rgba(255,255,255,.95);font-weight:600;">{{ lab_datasets }}</span> lab
+          </div>
+          <div>
+            <span style="color:rgba(255,255,255,.95);font-weight:600;">{{ adi_datasets }}</span> ADI
+            &middot; <span style="color:rgba(255,255,255,.95);font-weight:600;">{{ comorbidity_datasets }}</span> ICD-10
+            &middot; <span style="color:rgba(255,255,255,.95);font-weight:600;">{{ demographics_datasets }}</span> demo
+            &middot; <span style="color:rgba(255,255,255,.95);font-weight:600;">{{ nursing_datasets }}</span> NHV
+          </div>
         </div>
       </div>
     </div>
@@ -56,11 +64,13 @@
     <div class="stat-card stat-card-red">
       <div class="stat-icon"><i class="fas fa-users"></i></div>
       <div class="stat-body">
-        <div class="stat-number">{{ total_patients|default:"0" }}</div>
-        <div class="stat-label">Unique Patients</div>
-        {% if total_cases %}
-        <div class="small text-muted mt-1">{{ total_cases }} lab cases</div>
-        {% endif %}
+        <div class="stat-number">{{ total_demographics|default:"0" }}</div>
+        <div class="stat-label">Demographics Records</div>
+        <div class="small mt-1" style="color:rgba(255,255,255,.7);line-height:1.7">
+          <span style="color:rgba(255,255,255,.95);font-weight:600;">{{ total_adi|default:0 }}</span> ADI
+          &middot; <span style="color:rgba(255,255,255,.95);font-weight:600;">{{ total_comorbidity|default:0 }}</span> ICD-10
+          &middot; <span style="color:rgba(255,255,255,.95);font-weight:600;">{{ total_nursing|default:0 }}</span> NHV
+        </div>
       </div>
     </div>
   </div>
@@ -78,8 +88,8 @@
       </div>
       <div class="card-body d-flex align-items-center justify-content-center">
         {% if total_ward %}
-          <div style="position:relative;max-width:320px;width:100%;">
-            <canvas id="wardDonut"></canvas>
+          <div style="position:relative;width:280px;height:280px;flex-shrink:0;">
+            <canvas id="wardDonut" width="280" height="280"></canvas>
           </div>
         {% else %}
           <div class="empty-chart">
@@ -198,7 +208,11 @@
               <div class="d-flex align-items-center gap-2">
                 <div class="ds-icon">
                   {% if ds.schema_type == 'lab' %}<i class="fas fa-flask"></i>
-                  {% else %}<i class="fas fa-file-csv"></i>{% endif %}
+                  {% elif ds.schema_type == 'ADI' %}<i class="fas fa-map-pin"></i>
+                  {% elif ds.schema_type == 'comorbidity' %}<i class="fas fa-heart-pulse"></i>
+                  {% elif ds.schema_type == 'demographics' %}<i class="fas fa-users"></i>
+                  {% elif ds.schema_type == 'nursing_home_visits' %}<i class="fas fa-house-medical"></i>
+                  {% else %}<i class="fas fa-hospital-user"></i>{% endif %}
                 </div>
                 <div>
                   <div class="fw-semibold">{{ ds.name }}</div>
@@ -208,13 +222,17 @@
             </td>
             <td>
               {% if ds.schema_type == 'lab' %}
-                <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.7rem">
-                  <i class="fas fa-flask me-1"></i>Lab
-                </span>
+                <span class="badge schema-badge-lab" style="font-size:.7rem"><i class="fas fa-flask me-1"></i>Lab</span>
+              {% elif ds.schema_type == 'ADI' %}
+                <span class="badge schema-badge-adi" style="font-size:.7rem"><i class="fas fa-map-pin me-1"></i>ADI</span>
+              {% elif ds.schema_type == 'comorbidity' %}
+                <span class="badge schema-badge-comorbidity" style="font-size:.7rem"><i class="fas fa-heart-pulse me-1"></i>ICD-10</span>
+              {% elif ds.schema_type == 'demographics' %}
+                <span class="badge schema-badge-demographics" style="font-size:.7rem"><i class="fas fa-users me-1"></i>Demographics</span>
+              {% elif ds.schema_type == 'nursing_home_visits' %}
+                <span class="badge schema-badge-nhv" style="font-size:.7rem"><i class="fas fa-house-medical me-1"></i>Nursing</span>
               {% else %}
-                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:.7rem">
-                  <i class="fas fa-hospital me-1"></i>Ward
-                </span>
+                <span class="badge schema-badge-ward" style="font-size:.7rem"><i class="fas fa-hospital-user me-1"></i>Ward</span>
               {% endif %}
             </td>
             <td>
@@ -258,14 +276,41 @@ const labels  = ['Inpatient (IP)', 'Outpatient (OP)', 'Emergency (ER)', 'Urgent 
 const values  = [wardStats.IP, wardStats.OP, wardStats.ER, wardStats.UC, wardStats.DS];
 const colors  = ['#3b82f6','#10b981','#ef4444','#f59e0b','#8b5cf6'];
 
+// Plugin: center total label on doughnut
+const centerLabelPlugin = {
+  id: 'centerLabel',
+  afterDraw(chart) {
+    if (chart.config.type !== 'doughnut') return;
+    const { ctx, chartArea: { top, bottom, left, right } } = chart;
+    const total = chart.data.datasets[0].data.reduce((a, b) => a + (b || 0), 0);
+    const cx = (left + right) / 2, cy = (top + bottom) / 2;
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '700 1.35rem Inter, sans-serif';
+    ctx.fillStyle = dark ? '#e2e8f0' : '#1e293b';
+    ctx.fillText(total.toLocaleString(), cx, cy - 9);
+    ctx.font = '500 0.7rem Inter, sans-serif';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText('Total', cx, cy + 11);
+    ctx.restore();
+  }
+};
+
 if (document.getElementById('wardDonut')) {
-  new Chart(document.getElementById('wardDonut'), {
+  window.wardDonutChart = new Chart(document.getElementById('wardDonut'), {
     type: 'doughnut',
-    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 3, borderColor: '#fff', hoverOffset: 6 }] },
+    plugins: [centerLabelPlugin],
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 3, borderColor: 'transparent', hoverOffset: 8 }] },
     options: {
-      cutout: '65%',
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 1,
+      cutout: '68%',
+      animation: { animateRotate: true, duration: 900 },
       plugins: {
-        legend: { position: 'bottom', labels: { padding: 16, font: { size: 12, family: 'Inter' } } },
+        legend: { position: 'bottom', labels: { padding: 16, font: { size: 12, family: 'Inter' }, usePointStyle: true, pointStyle: 'circle', boxWidth: 10, boxHeight: 10 } },
         tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString()}` } }
       }
     }

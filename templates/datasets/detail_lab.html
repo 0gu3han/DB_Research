@@ -2,6 +2,10 @@
 {% block title %}— {{ dataset.name }}{% endblock %}
 {% block breadcrumb %}{{ dataset.name }}{% endblock %}
 
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet"/>
+{% endblock %}
+
 {% block content %}
 <!-- ── Header ─────────────────────────────────────────────────────────────── -->
 <div class="page-header flex-wrap gap-3">
@@ -38,46 +42,46 @@
 <!-- ── Summary Stats Row ──────────────────────────────────────────────────── -->
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-4 col-xl-3">
-    <div class="stat-card h-100">
+    <div class="stat-card stat-light h-100">
       <div class="stat-icon" style="background:rgba(99,102,241,.12);color:#6366f1">
         <i class="fas fa-vials"></i>
       </div>
-      <div class="stat-content">
+      <div class="stat-body">
         <div class="stat-number">{{ dataset.row_count|default:"0" }}</div>
-        <div class="stat-label">Total Records</div>
+        <div class="stat-label" style="opacity:1;color:var(--navy-400)">Total Records</div>
       </div>
     </div>
   </div>
   <div class="col-6 col-md-4 col-xl-3">
-    <div class="stat-card h-100">
+    <div class="stat-card stat-light h-100">
       <div class="stat-icon" style="background:rgba(16,185,129,.12);color:#10b981">
         <i class="fas fa-users"></i>
       </div>
-      <div class="stat-content">
+      <div class="stat-body">
         <div class="stat-number">{{ unique_cases }}</div>
-        <div class="stat-label">Unique Cases</div>
+        <div class="stat-label" style="opacity:1;color:var(--navy-400)">Unique Cases</div>
       </div>
     </div>
   </div>
   <div class="col-6 col-md-4 col-xl-3">
-    <div class="stat-card h-100">
+    <div class="stat-card stat-light h-100">
       <div class="stat-icon" style="background:rgba(245,158,11,.12);color:#f59e0b">
         <i class="fas fa-flask"></i>
       </div>
-      <div class="stat-content">
+      <div class="stat-body">
         <div class="stat-number">{{ available_tests|length }}</div>
-        <div class="stat-label">Test Types</div>
+        <div class="stat-label" style="opacity:1;color:var(--navy-400)">Test Types</div>
       </div>
     </div>
   </div>
   <div class="col-6 col-md-4 col-xl-3">
-    <div class="stat-card h-100">
+    <div class="stat-card stat-light h-100">
       <div class="stat-icon" style="background:rgba(239,68,68,.12);color:#ef4444">
         <i class="fas fa-calendar-days"></i>
       </div>
-      <div class="stat-content">
+      <div class="stat-body">
         <div class="stat-number">{{ dataset.created_at|date:"M d" }}</div>
-        <div class="stat-label">Uploaded</div>
+        <div class="stat-label" style="opacity:1;color:var(--navy-400)">Uploaded</div>
       </div>
     </div>
   </div>
@@ -228,6 +232,12 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 {% endblock %}
 
 {% block extra_js %}
